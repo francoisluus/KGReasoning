@@ -74,12 +74,13 @@ def parse_args(args=None):
     parser.add_argument('--nentity', type=int, default=0, help='DO NOT MANUALLY SET')
     parser.add_argument('--nrelation', type=int, default=0, help='DO NOT MANUALLY SET')
     
-    parser.add_argument('--geo', default='vec', type=str, choices=['vec', 'box', 'beta'], help='the reasoning model, vec for GQE, box for Query2box, beta for BetaE')
+    parser.add_argument('--geo', default='vec', type=str, choices=['vec', 'box', 'beta', 'logic'], help='the reasoning model, vec for GQE, box for Query2box, beta for BetaE, logic for logic embeddings')
     parser.add_argument('--print_on_screen', action='store_true')
     
     parser.add_argument('--tasks', default='1p.2p.3p.2i.3i.ip.pi.2in.3in.inp.pin.pni.2u.up', type=str, help="tasks connected by dot, refer to the BetaE paper for detailed meaning and structure of each task")
     parser.add_argument('--seed', default=0, type=int, help="random seed")
-    parser.add_argument('-betam', '--beta_mode', default="(1600,2)", type=str, help='(hidden_dim,num_layer) for BetaE relational projection')
+    parser.add_argument('-logicm', '--logic_mode', default="(prod,1,1,1,1600,2)", type=str, help='(tnorm,bounded,use_att,use_gtrans,hidden_dim,num_layer)')
+    parser.add_argument('-betam', '--beta_mode', default="(1,1600,2)", type=str, help='(use_att,hidden_dim,num_layer) for BetaE relational projection')
     parser.add_argument('-boxm', '--box_mode', default="(none,0.02)", type=str, help='(offset activation,center_reg) for Query2box, center_reg balances the in_box dist and out_box dist')
     parser.add_argument('--prefix', default=None, type=str, help='prefix of the log path')
     parser.add_argument('--checkpoint_path', default=None, type=str, help='path for loading the checkpoints')
@@ -200,7 +201,7 @@ def main(args):
         if 'n' in task and args.geo in ['box', 'vec']:
             assert False, "Q2B and GQE cannot handle queries with negation"
     if args.evaluate_union == 'DM':
-        assert args.geo == 'beta', "only BetaE supports modeling union using De Morgan's Laws"
+        assert args.geo == 'beta' or args.geo == 'logic', "only logic embeddings and BetaE supports modeling union using De Morgan's Laws"
 
     cur_time = parse_time()
     if args.prefix is None:
@@ -209,13 +210,15 @@ def main(args):
         prefix = args.prefix
 
     print ("overwritting args.save_path")
-    args.save_path = os.path.join(prefix, args.data_path.split('/')[-1], args.tasks, args.geo)
+    args.save_path = os.path.join(prefix, args.data_path.split('/')[-1], args.tasks + '-' + args.evaluate_union, args.geo)
     if args.geo in ['box']:
         tmp_str = "g-{}-mode-{}".format(args.gamma, args.box_mode)
     elif args.geo in ['vec']:
         tmp_str = "g-{}".format(args.gamma)
     elif args.geo == 'beta':
         tmp_str = "g-{}-mode-{}".format(args.gamma, args.beta_mode)
+    elif args.geo == 'logic':
+        tmp_str = "g-{}-mode-{}".format(args.gamma, args.logic_mode)
 
     if args.checkpoint_path is not None:
         args.save_path = args.checkpoint_path
@@ -246,7 +249,7 @@ def main(args):
     logging.info('#entity: %d' % nentity)
     logging.info('#relation: %d' % nrelation)
     logging.info('#max steps: %d' % args.max_steps)
-    logging.info('Evaluate unoins using: %s' % args.evaluate_union)
+    logging.info('Evaluate unions using: %s' % args.evaluate_union)
 
     train_queries, train_answers, valid_queries, valid_hard_answers, valid_easy_answers, test_queries, test_hard_answers, test_easy_answers = load_data(args, tasks)        
 
@@ -324,6 +327,7 @@ def main(args):
         use_cuda = args.cuda,
         box_mode=eval_tuple(args.box_mode),
         beta_mode = eval_tuple(args.beta_mode),
+        logic_mode = eval_tuple(args.logic_mode),
         test_batch_size=args.test_batch_size,
         query_name_dict = query_name_dict
     )
@@ -358,7 +362,7 @@ def main(args):
             warm_up_steps = checkpoint['warm_up_steps']
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     else:
-        logging.info('Ramdomly Initializing %s Model...' % args.geo)
+        logging.info('Randomly Initializing %s Model...' % args.geo)
         init_step = 0
 
     step = init_step 
@@ -366,11 +370,13 @@ def main(args):
         logging.info('box mode = %s' % args.box_mode)
     elif args.geo == 'beta':
         logging.info('beta mode = %s' % args.beta_mode)
+    elif args.geo == 'logic':
+        logging.info('logic mode = %s (tnorm,bounded,use_att,use_gtrans,hidden_dim,num_layer)' % args.logic_mode)
     logging.info('tasks = %s' % args.tasks)
     logging.info('init_step = %d' % init_step)
     if args.do_train:
         logging.info('Start Training...')
-        logging.info('learning_rate = %d' % current_learning_rate)
+        logging.info('learning_rate = %f' % current_learning_rate)
     logging.info('batch_size = %d' % args.batch_size)
     logging.info('hidden_dim = %d' % args.hidden_dim)
     logging.info('gamma = %f' % args.gamma)
