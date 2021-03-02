@@ -1,8 +1,8 @@
 # KGReasoning
-This repo contains several algorithms for multi-hop reasoning on knowledge graphs, including the official Pytorch implementation of [Beta Embeddings for Multi-Hop Logical Reasoning in Knowledge Graphs](https://arxiv.org/abs/2010.11465), and Logic Embeddings for Complex Query Answering.
+This repo contains several algorithms for multi-hop reasoning on knowledge graphs, including the official Pytorch implementation of [Beta Embeddings for Multi-Hop Logical Reasoning in Knowledge Graphs](https://arxiv.org/abs/2010.11465), and [Logic Embeddings for Complex Query Answering](https://arxiv.org/abs/2103.00418).
 
 **Models**
-- [x] [LogicE](Logic Embeddings for Complex Query Answering)
+- [x] [LogicE](https://arxiv.org/abs/2103.00418)
 - [x] [BetaE](https://arxiv.org/abs/2010.11465)
 - [x] [Query2box](https://arxiv.org/abs/2002.05969)
 - [x] [GQE](https://arxiv.org/abs/1806.01445)
@@ -36,5 +36,16 @@ If you use this repo, please cite the following paper.
  author={Hongyu Ren and Jure Leskovec},
  booktitle={Neural Information Processing Systems},
  year={2020}
+}
+```
+
+If you use LogicE in this repo, please also cite the following paper.
+
+```
+@article{luus2021logic,
+      title={Logic Embeddings for Complex Query Answering}, 
+      author={Francois Luus and Prithviraj Sen and Pavan Kapanipathi and Ryan Riegel and Ndivhuwo Makondo and Thabang Lebese and Alexander Gray},
+      journal={arXiv preprint arXiv:2103.00418},
+      year={2021}
 }
 ```
